@@ -6,9 +6,8 @@ from bs4 import BeautifulSoup
 
 # Assign URL link
 Keyword = input("Provide keyword/phrase for search: ")+"+&1="
-Location = input("Provide location: ")
 
-URL = "https://au.indeed.com/jobs?q="+Keyword+str(Location)
+URL = "https://au.indeed.com/jobs?q="+Keyword+"brisbane+QLD&radius=125"
 
 
 
@@ -38,7 +37,7 @@ def extract_job_name():
         for a_tag in div_tag.find_all(name="a", attrs={"data-tn-element":"jobTitle"}):
             jobs.append(a_tag["title"])
     print(jobs)
-extract_job_name()
+# extract_job_name()
 
 def extract_company_name():
     companyName = []
@@ -53,10 +52,10 @@ def extract_company_name():
                 companyName.append(j.text.strip())
 
     print(companyName)
-extract_company_name()
+# extract_company_name()
 
 # function to extract the job description of each relevant job
-def extract_job_description(pageContent):
+def extract_job_description():
     #create a list to store the description strings
     descriptions = []
     # loop through the job relevant div tags
@@ -66,8 +65,40 @@ def extract_job_description(pageContent):
             descriptions.append(span.text.strip())
     print(descriptions)
 
-extract_job_description(pageContent)
+# extract_job_description()
 
 ## Create a data table and insert job information ##
 columns = ["Job title", "Company", "Job description"]
 job_table = pd.DataFrame(columns = columns)
+
+for i in range(0,100, 10):
+    # creates a url that changes pages based on the index variable i
+    page = requests.get("https://au.indeed.com/jobs?q="+Keyword+"brisbane+QLD&radius=125"+"&start="+str(i))
+    # add delay between page grabs
+    time.sleep(1)
+    pageContent = BeautifulSoup(page.text, 'lxml', from_encoding="UTF-8")
+    for div_tag in pageContent.find_all(name="div", attrs={"class":"row"}):
+        # determine size of data table
+        num = (len(job_table)+1)
+        job_ad = []
+        # appending job name
+        for a in div_tag.find_all(name="a", attrs={"data-tn-element":"jobTitle"}):
+            job_ad.append(a["title"])
+        # appending company names
+        Company_Names = div_tag.find_all(name="span", attrs={"class":"company"})
+        if len(Company_Names) > 0:
+            for companies in Company_Names:
+                job_ad.append(companies.text.strip())
+        else:
+            Company_Names = div_tag.find_all(name="span", attrs={"class":"result-link-source"})
+            for more_companies in Company_Names:
+                job_ad.append(more_companies.text.strip())
+        # appending job description
+        for span in div_tag.find_all(name="span", attrs={"class":"summary"}):
+            job_ad.append(span.text.strip())
+
+
+
+        job_table.loc[num] = job_ad
+
+print(job_table)
